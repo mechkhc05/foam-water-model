@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><Nullable>disable</Nullable><ImplicitUsings>disable</ImplicitUsings><RollForward>Major</RollForward></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../src/PocketModel.cs" />
+    <Compile Include="../src/WaterSim.cs" />
+  </ItemGroup>
+</Project>

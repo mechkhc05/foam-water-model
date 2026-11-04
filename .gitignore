@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+bin/
+obj/
+results/water_paper/figs/
+results/water_paper/maps.npz
+results/water_paper/water_paper/
