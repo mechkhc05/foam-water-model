@@ -8,6 +8,7 @@ using PorousFlowField;
 // Model-form test for the Energies revision: transient water model with capillary diffusion between foam cells,
 // run to steady state. args: outDir [quick]
 class P {
+  const string HEADER = "design,rh_in,cap_cos,s_r0,n_c,n_kr,cover,t_s,dP_kPa,water_mg,i_mean,i_min,p01,p05,p10,p25,cov,low_frac,s_mean,s_max";
   static double CapDt = double.Parse(Environment.GetEnvironmentVariable("CAPDT") ?? "5", CultureInfo.InvariantCulture);
   static string Row(string tag, float rh, double cc, double[] c, WaterSim sim, double t) {
     var m = sim.m;
@@ -64,13 +65,24 @@ class P {
         foreach (var dz in designs.Where(x => x.tag == "Z" || x.tag == "U" || x.tag == "Z+H3" || x.tag == "Z+H6")) foreach (float rh in new[] { 1f }) foreach (double cc in new[] { 0.0, 1.0 })
           jobs.Add((dz.tag, dz.si, dz.so, dz.h, rh, cc, new double[] { s0, nc, nk, 1.0 }, false));
     }
+    // resume: skip jobs already listed in <outDir>/cap_<mode>_done.csv (rows of earlier, interrupted runs)
+    string donePath = Path.Combine(o, $"cap_{mode}_done.csv");
+    var done = File.Exists(donePath) ? File.ReadAllLines(donePath).Skip(1).Where(l => l.Trim().Length > 0).ToList() : new System.Collections.Generic.List<string>();
+    Func<(string, float, float, float, float, double, double[], bool), string> key = j => string.Format(CultureInfo.InvariantCulture,
+      "{0},{1},{2},{3},{4},{5},{6}", j.Item1, j.Item5, j.Item6, j.Item7[0], j.Item7[1], j.Item7[2], j.Item7[3]);
+    var doneKeys = new System.Collections.Generic.HashSet<string>(done.Select(l => string.Join(",", l.Split(',').Take(7))));
+    int before = jobs.Count;
+    jobs = jobs.Where(j => !doneKeys.Contains(key(j))).ToList();
+    Console.WriteLine($"{mode}: {before - jobs.Count} done earlier, {jobs.Count} to run");
+    var lk = new object();
     var rows = new string[jobs.Count];
     Parallel.For(0, jobs.Count, new ParallelOptions { MaxDegreeOfParallelism = 14 }, q => {
       var j = jobs[q];
       var sw = System.Diagnostics.Stopwatch.StartNew();
       rows[q] = Run(o, j.Item1, j.Item2, j.Item3, j.Item4, j.Item5, j.Item6, j.Item7, j.Rest.Item1);
       Console.WriteLine(rows[q] + $"  ({sw.Elapsed.TotalSeconds:F0} s)");
+      lock (lk) { File.AppendAllText(donePath, (File.Exists(donePath) ? "" : HEADER + "\n") + rows[q] + "\n"); }   // survives interruption
     });
-    File.WriteAllText(Path.Combine(o, $"cap_{mode}.csv"), "design,rh_in,cap_cos,s_r0,n_c,n_kr,cover,t_s,dP_kPa,water_mg,i_mean,i_min,p01,p05,p10,p25,cov,low_frac,s_mean,s_max\n" + string.Join("\n", rows) + "\n");
+    File.WriteAllText(Path.Combine(o, $"cap_{mode}.csv"), HEADER + "\n" + string.Join("\n", done.Concat(rows)) + "\n");
   }
 }
