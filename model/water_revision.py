@@ -220,6 +220,13 @@ if __name__ == "__main__":
         run([(d, 0.5e-3, dict(rh_in=rh, **base)) for d in DESIGNS for rh in (0.0, 0.5, 1.0)], "metrics.csv")
     elif mode == "sens":
         run([(d, 0.5e-3, dict(rh_in=rh, **c)) for d in ("Z", "U", "Z+H1.5", "Z+H3", "Z+H6") for rh in (0.5, 1.0) for c in SENS_GRID], "sens.csv")
+    elif mode == "sensC":                                        # 심사위원 3 대응: 중앙 포트 C 도 90조합
+        run([("C", 0.5e-3, dict(rh_in=rh, **c)) for rh in (0.5, 1.0) for c in SENS_GRID], "sens_C.csv")
+    elif mode == "nsplit":                                       # 심사위원 3: 기체·액체 상대투과도 지수를 따로 (2, 4)
+        base = dict(DEFAULT)
+        jobs = [(d, 0.5e-3, dict(base, rh_in=rh, n_kr=nl, n_g=ng)) for d in DESIGNS for rh in (0.5, 1.0)
+                for nl, ng in ((3.0, 2.0), (3.0, 4.0), (2.0, 3.0), (4.0, 3.0))]
+        run(jobs, "nsplit.csv")
     elif mode == "cap":
         cap()
     elif mode == "summary":

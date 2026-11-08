@@ -57,7 +57,7 @@ def r_mem(a, tk, t_mem=50.8e-6, lam_an=14.0):
 
 def solve_wet(g, rh_in=1.0, ik=2.0, wet=True, s_r0=0.4, n_c=1e-4, n_kr=3.0, cover=1.0, eps=EPS_BASE,
               n_it=80, relax=0.3, tol=1e-4, t_c=None, q_slpm=0.532, w_inj=0.0, k_scale=1.0, c_f=C_F,
-              v_cell=None, asr_c=0.05, t_mem=50.8e-6, compress=False):
+              v_cell=None, asr_c=0.05, t_mem=50.8e-6, compress=False, n_g=None):
     """compress=True 면 국소 절대압력 P + p (출구 = 대기압 P) 를 쓴다: 기체 밀도(질량 보존), 산소·수증기 농도,
     포화 몰분율 P_SAT / (P + p), 입구 RH 는 입구 절대압력 기준. 분자 확산 저항(GDL·폼)은 압력에 반비례하지만
     전체 농도에 비례하는 몫과 상쇄되어 몰분율 식에서는 그대로이고, 반응·R_OTHER(이오노머 쪽)는 농도 기준이라 밀도비로 나눈다.
@@ -116,7 +116,7 @@ def solve_wet(g, rh_in=1.0, ik=2.0, wet=True, s_r0=0.4, n_c=1e-4, n_kr=3.0, cove
     Kapp = K0.copy()
     hist, d_rho = [], 0.0
     for it in range(n_it):
-        krg = np.where(foam, (1 - s) ** n_kr, 1.0)
+        krg = np.where(foam, (1 - s) ** (n_kr if n_g is None else n_g), 1.0)   # n_g: 기체 지수를 따로 줄 때(심사 대응)
         for _ in range(8 if it == 0 else 2):                        # Forchheimer 는 바깥 반복과 함께 수렴시킨다
             # 유량은 질량 기준(P 에서의 부피)이다: 컨덕턴스 × 밀도비. Forchheimer 항 c_f ρ u² 도 질량 유속으로 쓰면 NU(P) 그대로다
             Tc = rho * (H_F * Kapp * krg / MU + Tg)
